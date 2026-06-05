@@ -18,6 +18,7 @@ public class DataInitializer {
                                WordRelationRepository relationRepo, 
                                ReviewRecordRepository reviewRepo,
                                QuizRecordRepository quizRepo,
+                               LevelRepository levelRepo,
                                PasswordEncoder encoder) {
         return args -> {
             // 创建测试用户
@@ -160,6 +161,20 @@ public class DataInitializer {
                 
                 // 时间类关系
                 createRelation(relationRepo, morning.getId(), night.getId(), WordRelation.RelationType.ANTONYM);
+            }
+            
+            // 初始化 10 个关卡
+            if (levelRepo.count() == 0) {
+                createLevel(levelRepo, 1, "情感入门", "学习基础情感词汇，开启词汇之旅", "EASY", 80, "1,2,3");
+                createLevel(levelRepo, 2, "情感进阶", "掌握更多情感表达词汇", "EASY", 80, "4,5,1,2");
+                createLevel(levelRepo, 3, "美食世界", "认识常见食物相关词汇", "EASY", 80, "6,7,8,9,10");
+                createLevel(levelRepo, 4, "日常动作", "学习日常生活中的动作词汇", "MEDIUM", 80, "11,12,13,14,15");
+                createLevel(levelRepo, 5, "外貌描写", "掌握描述人物外貌的形容词", "MEDIUM", 80, "16,17,18,19,11");
+                createLevel(levelRepo, 6, "大小概念", "学习描述尺寸大小的词汇", "MEDIUM", 80, "20,21,22,23,12");
+                createLevel(levelRepo, 7, "学习天地", "认识与学习相关的词汇", "MEDIUM", 85, "24,25,26,27,14");
+                createLevel(levelRepo, 8, "品质评价", "掌握评价事物品质的词汇", "HARD", 85, "28,29,30,31,20");
+                createLevel(levelRepo, 9, "时间概念", "学习时间相关词汇及综合运用", "HARD", 85, "32,33,28,29,11");
+                createLevel(levelRepo, 10, "终极挑战", "综合考察所有词汇的掌握程度", "HARD", 90, "1,6,11,16,20,24,28,32,2,7");
             }
             
             // 为用户 user (ID=2) 创建复习记录和测验记录（独立于单词初始化）
@@ -307,5 +322,17 @@ public class DataInitializer {
         q3.setWrongWordIds("");
         q3.setCreatedAt(now.minusHours(2));
         repo.save(q3);
+    }
+    
+    private void createLevel(LevelRepository repo, int order, String name, String description, 
+                            String difficulty, int passingScore, String wordIds) {
+        com.wordmind.entity.Level level = new com.wordmind.entity.Level();
+        level.setName(name);
+        level.setDescription(description);
+        level.setDifficulty(difficulty);
+        level.setPassingScore(passingScore);
+        level.setOrder(order);
+        level.setWordIds(wordIds);
+        repo.save(level);
     }
 }

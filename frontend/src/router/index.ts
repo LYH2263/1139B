@@ -59,6 +59,12 @@ const router = createRouter({
           meta: { title: '单词测验' }
         },
         {
+          path: 'levels',
+          name: 'Levels',
+          component: () => import('@/views/LevelsView.vue'),
+          meta: { title: '闯关学习' }
+        },
+        {
           path: 'favorites',
           name: 'Favorites',
           component: () => import('@/views/FavoritesView.vue'),

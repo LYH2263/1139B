@@ -43,6 +43,11 @@
           <template #title>单词测验</template>
         </el-menu-item>
         
+        <el-menu-item index="/levels">
+          <el-icon><Compass /></el-icon>
+          <template #title>闯关学习</template>
+        </el-menu-item>
+        
         <el-menu-item index="/favorites">
           <el-icon><Star /></el-icon>
           <template #title>我的收藏</template>
@@ -123,6 +128,10 @@
           <el-icon><Edit /></el-icon>
           <span>单词测验</span>
         </el-menu-item>
+        <el-menu-item index="/levels" @click="showMobileDrawer = false">
+          <el-icon><Compass /></el-icon>
+          <span>闯关学习</span>
+        </el-menu-item>
         <el-menu-item index="/favorites" @click="showMobileDrawer = false">
           <el-icon><Star /></el-icon>
           <span>我的收藏</span>
@@ -190,7 +199,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
   Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star,
-  Trophy, Edit as EditIcon
+  Trophy, Edit as EditIcon, Compass
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 

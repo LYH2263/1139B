@@ -182,3 +182,47 @@ export interface NoteListResponse {
   page: number
   size: number
 }
+
+export interface LevelProgress {
+  id: number
+  bestScore: number
+  stars: number
+  completed: boolean
+  attempts: number
+  lastAttemptAt?: string
+}
+
+export interface Level {
+  id: number
+  name: string
+  description: string
+  difficulty: string
+  passingScore: number
+  order: number
+  wordCount: number
+  unlocked: boolean
+  progress?: LevelProgress
+}
+
+export interface LevelStartResponse {
+  sessionId: string
+  questions: QuizQuestion[]
+}
+
+export interface LevelSubmitRequest {
+  sessionId: string
+  answers: { wordId: number; answer: string }[]
+}
+
+export interface LevelSubmitResponse {
+  levelId: number
+  score: number
+  correctCount: number
+  totalCount: number
+  stars: number
+  passed: boolean
+  newlyCompleted: boolean
+  duration: number
+  wrongWords: Word[]
+  progress: LevelProgress
+}
