@@ -161,6 +161,130 @@
         </div>
       </el-card>
       
+      <!-- Memory Associations Section -->
+      <el-card class="association-card">
+        <div class="association-header" @click="associationsExpanded = !associationsExpanded">
+          <div class="association-title-wrapper">
+            <el-icon class="association-icon"><Lightbulb /></el-icon>
+            <h3 class="association-title">记忆法</h3>
+            <span v-if="associations.length > 0" class="association-count">
+              {{ associations.length }} 条联想
+            </span>
+          </div>
+          <div class="association-header-actions">
+            <el-button 
+              v-if="!showAssociationForm"
+              type="primary" 
+              size="small" 
+              @click.stop="showAssociationForm = true"
+            >
+              <el-icon class="mr-1"><Plus /></el-icon> 分享我的记忆法
+            </el-button>
+            <el-icon class="expand-icon" :class="{ expanded: associationsExpanded }">
+              <ArrowDown />
+            </el-icon>
+          </div>
+        </div>
+
+        <div v-show="associationsExpanded" class="association-body">
+          <div v-if="showAssociationForm" class="association-form">
+            <div class="form-title">分享你的记忆法</div>
+            <el-select 
+              v-model="associationType" class="type-select" size="small">
+              <el-option 
+                v-for="opt in associationTypeOptions" 
+                :key="opt.value" 
+                :label="opt.label" 
+                :value="opt.value" 
+              />
+            </el-select>
+            <el-input
+              v-model="associationContent"
+              type="textarea"
+              :rows="4"
+              placeholder="分享你的记忆联想方法..."
+              maxlength="1000"
+              show-word-limit
+              resize="vertical"
+              class="association-editor"
+            />
+            <div class="form-actions">
+              <el-button 
+              size="small" 
+              @click="showAssociationForm = false"
+            >
+              取消
+            </el-button>
+            <el-button 
+              size="small" 
+              type="primary" 
+              :loading="submittingAssociation"
+              @click="submitAssociation"
+            >
+              提交
+            </el-button>
+          </div>
+          </div>
+
+          <div v-if="associationsLoading" class="associations-loading">
+            <el-skeleton :rows="4" />
+          </div>
+
+          <div v-else-if="associations.length === 0" class="associations-empty">
+            <el-icon><Lightbulb /></el-icon>
+            <p>暂无记忆联想</p>
+            <span class="hint">点击上方按钮，分享你的记忆法吧</span>
+          </div>
+
+          <div v-else class="associations-list">
+            <div 
+              v-for="assoc in associations" 
+              :key="assoc.id" 
+              class="association-item"
+              :class="{ 'system-generated': assoc.isSystemGenerated }"
+            >
+              <div class="association-item-header">
+                <el-tag 
+                size="small" 
+                :style="{ backgroundColor: getAssociationTypeColor(assoc.type) + '20', color: getAssociationTypeColor(assoc.type), borderColor: getAssociationTypeColor(assoc.type) + '40' }"
+                effect="light"
+                class="type-tag"
+              >
+                <el-icon class="mr-1">
+                  <component :is="getAssociationTypeIcon(assoc.type)" />
+                </el-icon>
+                {{ assoc.type }}
+              </el-tag>
+              <el-tag 
+                v-if="assoc.isSystemGenerated" 
+                size="small" 
+                type="success"
+                effect="light"
+                class="source-tag"
+              >
+                系统生成
+              </el-tag>
+              <span v-else class="author">
+                by {{ assoc.createdBy }}
+              </span>
+              <el-button 
+                class="upvote-btn"
+                :loading="upvotingIds.has(assoc.id)"
+                size="small"
+                @click.stop="upvoteAssociation(assoc.id)"
+              >
+                <el-icon><ThumbsUp /></el-icon>
+                {{ assoc.upvotes }}
+              </el-button>
+              </div>
+              <div class="association-content">
+                <pre class="content-text">{{ assoc.content }}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
       <!-- Related Actions -->
       <div class="related-actions">
          <ActionCard 
@@ -189,7 +313,8 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Share, Plus, Calendar, Star, StarFilled, Edit, ArrowDown, 
-  EditPen, Loading 
+  EditPen, Loading, Lightbulb, ThumbsUp, ChatDotRound, 
+  MagicStick, CollectionTag 
 } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 import type { Word, Note } from '@/types'
@@ -197,6 +322,8 @@ import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
 import { favoriteApi } from '@/api/favorite'
 import { noteApi } from '@/api/note'
+import { associationApi } from '@/api/association'
+import type { MemoryAssociation } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ActionCard from '@/components/ui/ActionCard.vue'
 
@@ -219,6 +346,22 @@ const noteSaving = ref(false)
 const noteContent = ref('')
 const editorMode = ref<'edit' | 'preview'>('edit')
 const lastSavedAt = ref('')
+
+const associations = ref<MemoryAssociation[]>([])
+const associationsLoading = ref(false)
+const associationsExpanded = ref(true)
+const associationType = ref('词根拆解')
+const associationContent = ref('')
+const showAssociationForm = ref(false)
+const submittingAssociation = ref(false)
+const upvotingIds = ref<Set<number>>(new Set())
+
+const associationTypeOptions = [
+  { label: '词根拆解', value: '词根拆解' },
+  { label: '谐音联想', value: '谐音联想' },
+  { label: '字母联想', value: '字母联想' },
+  { label: '用户分享', value: '用户分享' }
+]
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -397,6 +540,92 @@ const formatPos = (pos: string) => {
   return map[pos] || pos
 }
 
+const fetchAssociations = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+  
+  associationsLoading.value = true
+  try {
+    const res = await associationApi.getAssociations(id)
+    associations.value = res.list
+  } catch (error) {
+    console.error(error)
+  } finally {
+    associationsLoading.value = false
+  }
+}
+
+const submitAssociation = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+  
+  if (!associationContent.value.trim()) {
+    ElMessage.warning('请输入联想内容')
+    return
+  }
+  
+  if (associationContent.value.length > 1000) {
+    ElMessage.warning('联想内容不能超过 1000 个字符')
+    return
+  }
+  
+  submittingAssociation.value = true
+  try {
+    await associationApi.createAssociation(id, {
+      wordId: id,
+      type: associationType.value,
+      content: associationContent.value.trim()
+    })
+    ElMessage.success('联想分享成功！')
+    associationContent.value = ''
+    showAssociationForm.value = false
+    await fetchAssociations()
+  } catch (error) {
+    console.error(error)
+  } finally {
+    submittingAssociation.value = false
+  }
+}
+
+const upvoteAssociation = async (id: number) => {
+  if (upvotingIds.value.has(id)) return
+  
+  upvotingIds.value.add(id)
+  try {
+    const res = await associationApi.upvoteAssociation(id)
+    const association = associations.value.find(a => a.id === id)
+    if (association) {
+      association.upvotes = res.upvotes
+    }
+    associations.value.sort((a, b) => b.upvotes - a.upvotes)
+    ElMessage.success('点赞成功！')
+  } catch (error) {
+    console.error(error)
+  } finally {
+    upvotingIds.value.delete(id)
+  }
+}
+
+const getAssociationTypeIcon = (type: string) => {
+  const map: Record<string, any> = {
+    '词根拆解': MagicStick,
+    '谐音联想': CollectionTag,
+    '字母联想': Lightbulb,
+    '用户分享': ChatDotRound
+  }
+  return map[type] || Lightbulb
+}
+
+const getAssociationTypeColor = (type: string) => {
+  const map: Record<string, string> = {
+    '词根拆解': '#409eff',
+    '谐音联想': '#e6a23c',
+    '字母联想': '#67c23a',
+    '用户分享': '#909399'
+  }
+  return map[type] || '#909399'
+}
+
 watch(noteContent, (newVal) => {
   if (newVal.length > 1000) {
     noteContent.value = newVal.substring(0, 1000)
@@ -407,6 +636,7 @@ onMounted(() => {
   fetchWord()
   fetchFavoriteStatus()
   fetchNote()
+  fetchAssociations()
 })
 </script>
 
@@ -744,6 +974,193 @@ onMounted(() => {
   color: var(--c-text-tertiary);
   text-align: center;
   padding: var(--space-lg);
+}
+
+/* Association Card Styles */
+.association-card {
+  margin-bottom: var(--space-xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.association-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.association-header:hover {
+  background-color: var(--c-bg-body);
+}
+
+.association-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.association-icon {
+  color: var(--c-warning);
+  font-size: 20px;
+}
+
+.association-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.association-count {
+  font-size: var(--font-size-xs);
+  color: var(--c-text-tertiary);
+  background-color: var(--c-bg-body);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.association-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.association-body {
+  padding: var(--space-lg);
+}
+
+.association-form {
+  background-color: var(--c-bg-body);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--c-primary-light);
+}
+
+.form-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--c-text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.type-select {
+  width: 150px;
+  margin-bottom: var(--space-md);
+}
+
+.association-editor :deep(textarea) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.associations-loading {
+  padding: var(--space-md);
+}
+
+.associations-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-tertiary);
+  padding: var(--space-xl) 0;
+}
+
+.associations-empty .el-icon {
+  font-size: 40px;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
+  color: var(--c-warning);
+}
+
+.associations-empty p {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--font-size-base);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-tertiary);
+}
+
+.associations-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.association-item {
+  background-color: var(--c-bg-body);
+  border: 1px solid var(--c-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  transition: all var(--transition-fast);
+}
+
+.association-item:hover {
+  border-color: var(--c-primary-light);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.association-item.system-generated {
+  background: linear-gradient(135deg, var(--c-success-bg) 0%, var(--c-bg-body) 100%);
+  border-color: var(--c-success-light);
+}
+
+.association-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.type-tag {
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+.source-tag {
+  font-weight: 500;
+}
+
+.author {
+  font-size: var(--font-size-xs);
+  color: var(--c-text-tertiary);
+}
+
+.upvote-btn {
+  margin-left: auto !important;
+}
+
+.association-content {
+  padding: var(--space-sm) 0;
+}
+
+.content-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--c-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .related-actions {

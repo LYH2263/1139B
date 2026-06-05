@@ -259,3 +259,30 @@ export interface BroadcastRequest {
 export interface MarkReadRequest {
   ids: number[]
 }
+
+export interface MemoryAssociation {
+  id: number
+  wordId: number
+  type: string
+  content: string
+  upvotes: number
+  createdBy: string
+  isSystemGenerated: boolean
+  createdAt: string
+}
+
+export interface AssociationListResponse {
+  list: MemoryAssociation[]
+  total: number
+}
+
+export interface AssociationCreateRequest {
+  wordId: number
+  type: string
+  content: string
+}
+
+export interface AssociationUpvoteResponse {
+  id: number
+  upvotes: number
+}
