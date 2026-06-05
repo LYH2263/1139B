@@ -65,6 +65,12 @@ const router = createRouter({
           meta: { title: '我的收藏' }
         },
         {
+          path: 'notes',
+          name: 'Notes',
+          component: () => import('@/views/NotesView.vue'),
+          meta: { title: '我的笔记' }
+        },
+        {
           path: 'records',
           name: 'Records',
           component: () => import('@/views/RecordsView.vue'),

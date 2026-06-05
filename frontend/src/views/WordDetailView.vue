@@ -62,6 +62,105 @@
         </div>
       </el-card>
       
+      <!-- My Notes Section -->
+      <el-card class="note-card">
+        <div class="note-header" @click="noteExpanded = !noteExpanded">
+          <div class="note-title-wrapper">
+            <el-icon class="note-icon"><Edit /></el-icon>
+            <h3 class="note-title">我的笔记</h3>
+            <span v-if="note" class="note-saved-status">
+              {{ noteSaving ? '保存中...' : '已保存' }}
+            </span>
+          </div>
+          <el-icon class="expand-icon" :class="{ expanded: noteExpanded }">
+            <ArrowDown />
+          </el-icon>
+        </div>
+        
+        <div v-show="noteExpanded" class="note-body">
+          <div v-if="noteLoading" class="note-loading">
+            <el-skeleton :rows="3" />
+          </div>
+          
+          <div v-else class="note-content-wrapper">
+            <div v-if="!noteEditing" class="note-preview" @click="startEditing">
+              <div 
+                v-if="note?.content" 
+                class="markdown-body" 
+                v-html="renderedContent"
+              />
+              <div v-else class="note-empty">
+                <el-icon><EditPen /></el-icon>
+                <p>点击开始记录笔记</p>
+                <span class="note-hint">支持 Markdown 格式</span>
+              </div>
+            </div>
+            
+            <div v-else class="note-editor-wrapper">
+              <div class="editor-toolbar">
+                <span class="char-count">{{ noteContent.length }}/1000</span>
+                <div class="editor-actions">
+                  <el-button size="small" @click="cancelEditing">取消</el-button>
+                  <el-button 
+                    size="small" 
+                    type="primary" 
+                    :loading="noteSaving"
+                    @click="saveNote"
+                  >
+                    保存
+                  </el-button>
+                </div>
+              </div>
+              
+              <div class="editor-tabs">
+                <span 
+                  class="tab-item" 
+                  :class="{ active: editorMode === 'edit' }"
+                  @click="editorMode = 'edit'"
+                >
+                  编辑
+                </span>
+                <span 
+                  class="tab-item" 
+                  :class="{ active: editorMode === 'preview' }"
+                  @click="editorMode = 'preview'"
+                >
+                  预览
+                </span>
+              </div>
+              
+              <div class="editor-container">
+                <el-input
+                  v-if="editorMode === 'edit'"
+                  v-model="noteContent"
+                  type="textarea"
+                  :rows="10"
+                  placeholder="记录您的学习笔记...&#10;&#10;支持 Markdown 格式：&#10;- **加粗文字**&#10;- *斜体文字*&#10;- `代码`&#10;- - 列表项&#10;- ### 标题"
+                  maxlength="1000"
+                  show-word-limit
+                  resize="vertical"
+                  class="note-editor"
+                  @input="onContentChange"
+                />
+                
+                <div 
+                  v-else 
+                  class="markdown-body note-preview-area"
+                  v-html="renderedContent"
+                />
+              </div>
+              
+              <div class="editor-footer">
+                <span class="auto-save-hint">
+                  <el-icon v-if="noteSaving" class="saving-icon"><Loading /></el-icon>
+                  {{ noteSaving ? '正在自动保存...' : (lastSavedAt ? '上次保存：' + lastSavedAt : '修改后 2 秒自动保存') }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+      
       <!-- Related Actions -->
       <div class="related-actions">
          <ActionCard 
@@ -85,22 +184,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Share, Plus, Calendar, Star, StarFilled } from '@element-plus/icons-vue'
-import type { Word } from '@/types'
+import { 
+  Share, Plus, Calendar, Star, StarFilled, Edit, ArrowDown, 
+  EditPen, Loading 
+} from '@element-plus/icons-vue'
+import { marked } from 'marked'
+import type { Word, Note } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
 import { favoriteApi } from '@/api/favorite'
+import { noteApi } from '@/api/note'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ActionCard from '@/components/ui/ActionCard.vue'
+
+marked.setOptions({
+  breaks: true,
+  gfm: true
+})
 
 const route = useRoute()
 const word = ref<Word | null>(null)
 const loading = ref(false)
 const isFavorite = ref(false)
 const favoriteLoading = ref(false)
+
+const note = ref<Note | null>(null)
+const noteLoading = ref(false)
+const noteExpanded = ref(true)
+const noteEditing = ref(false)
+const noteSaving = ref(false)
+const noteContent = ref('')
+const editorMode = ref<'edit' | 'preview'>('edit')
+const lastSavedAt = ref('')
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+
+const renderedContent = computed(() => {
+  if (!noteContent.value.trim()) {
+    return '<p class="empty-preview">暂无内容，切换到编辑模式开始记录...</p>'
+  }
+  return marked.parse(noteContent.value) as string
+})
 
 const fetchWord = async () => {
   const id = Number(route.params.id)
@@ -174,6 +301,92 @@ const toggleFavorite = async () => {
   }
 }
 
+const fetchNote = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+  
+  noteLoading.value = true
+  try {
+    const res = await noteApi.getNoteByWordId(id)
+    note.value = res
+    if (res) {
+      noteContent.value = res.content
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    noteLoading.value = false
+  }
+}
+
+const startEditing = () => {
+  noteEditing.value = true
+  editorMode.value = 'edit'
+  nextTick(() => {
+    const textarea = document.querySelector('.note-editor textarea') as HTMLTextAreaElement
+    if (textarea) {
+      textarea.focus()
+    }
+  })
+}
+
+const cancelEditing = () => {
+  if (note.value) {
+    noteContent.value = note.value.content
+  } else {
+    noteContent.value = ''
+  }
+  noteEditing.value = false
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+}
+
+const onContentChange = () => {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+  }
+  saveTimer = setTimeout(() => {
+    saveNote()
+  }, 2000)
+}
+
+const saveNote = async () => {
+  const id = Number(route.params.id)
+  if (!id || !noteContent.value.trim()) return
+  
+  if (noteContent.value.length > 1000) {
+    ElMessage.warning('笔记内容不能超过 1000 个字符')
+    return
+  }
+  
+  noteSaving.value = true
+  try {
+    if (note.value) {
+      note.value = await noteApi.updateNote(id, noteContent.value.trim())
+    } else {
+      note.value = await noteApi.createNote(id, noteContent.value.trim())
+    }
+    lastSavedAt.value = formatSaveTime(note.value.updatedAt)
+    noteEditing.value = false
+  } catch (error) {
+    console.error(error)
+  } finally {
+    noteSaving.value = false
+  }
+}
+
+const formatSaveTime = (dateStr: string) => {
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 const formatPos = (pos: string) => {
   const map: Record<string, string> = {
     noun: '名词',
@@ -184,9 +397,16 @@ const formatPos = (pos: string) => {
   return map[pos] || pos
 }
 
+watch(noteContent, (newVal) => {
+  if (newVal.length > 1000) {
+    noteContent.value = newVal.substring(0, 1000)
+  }
+})
+
 onMounted(() => {
   fetchWord()
   fetchFavoriteStatus()
+  fetchNote()
 })
 </script>
 
@@ -271,6 +491,261 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+/* Note Card Styles */
+.note-card {
+  margin-bottom: var(--space-xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.note-header:hover {
+  background-color: var(--c-bg-body);
+}
+
+.note-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.note-icon {
+  color: var(--c-primary);
+  font-size: 20px;
+}
+
+.note-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.note-saved-status {
+  font-size: var(--font-size-xs);
+  color: var(--c-success);
+  background-color: var(--c-success-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.expand-icon {
+  color: var(--c-text-tertiary);
+  transition: transform var(--transition-normal);
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.note-body {
+  padding: var(--space-lg);
+}
+
+.note-loading {
+  padding: var(--space-md);
+}
+
+.note-preview {
+  padding: var(--space-lg);
+  border: 2px dashed var(--c-border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 120px;
+}
+
+.note-preview:hover {
+  border-color: var(--c-primary);
+  background-color: var(--c-primary-bg);
+}
+
+.note-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-tertiary);
+  padding: var(--space-xl) 0;
+}
+
+.note-empty .el-icon {
+  font-size: 40px;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
+}
+
+.note-empty p {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--font-size-base);
+}
+
+.note-hint {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-tertiary);
+}
+
+.note-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-tertiary);
+}
+
+.editor-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.editor-tabs {
+  display: flex;
+  gap: var(--space-lg);
+  border-bottom: 1px solid var(--c-border-light);
+  padding-bottom: var(--space-sm);
+}
+
+.tab-item {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-tertiary);
+  cursor: pointer;
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.tab-item.active {
+  color: var(--c-primary);
+  border-bottom-color: var(--c-primary);
+  font-weight: 500;
+}
+
+.editor-container {
+  min-height: 200px;
+}
+
+.note-editor :deep(textarea) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.8;
+}
+
+.note-preview-area {
+  padding: var(--space-md);
+  background-color: var(--c-bg-body);
+  border-radius: var(--radius-md);
+  min-height: 200px;
+}
+
+.editor-footer {
+  text-align: right;
+}
+
+.auto-save-hint {
+  font-size: var(--font-size-xs);
+  color: var(--c-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.saving-icon {
+  animation: spin 1s linear infinite;
+  color: var(--c-primary);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Markdown Styles */
+.markdown-body {
+  color: var(--c-text-primary);
+  line-height: 1.8;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4) {
+  margin-top: var(--space-md);
+  margin-bottom: var(--space-sm);
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.markdown-body :deep(h1) { font-size: 24px; }
+.markdown-body :deep(h2) { font-size: 20px; }
+.markdown-body :deep(h3) { font-size: 18px; }
+.markdown-body :deep(h4) { font-size: 16px; }
+
+.markdown-body :deep(p) {
+  margin-bottom: var(--space-sm);
+}
+
+.markdown-body :deep(strong) {
+  color: var(--c-text-primary);
+  font-weight: 600;
+}
+
+.markdown-body :deep(em) {
+  color: var(--c-text-secondary);
+}
+
+.markdown-body :deep(code) {
+  background-color: var(--c-bg-body);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  color: var(--c-primary);
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: var(--space-lg);
+  margin-bottom: var(--space-sm);
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: var(--space-xs);
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid var(--c-primary);
+  padding-left: var(--space-md);
+  margin: var(--space-sm) 0;
+  color: var(--c-text-secondary);
+  background-color: var(--c-primary-bg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.markdown-body :deep(.empty-preview) {
+  color: var(--c-text-tertiary);
+  text-align: center;
+  padding: var(--space-lg);
+}
+
 .related-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -287,6 +762,10 @@ onMounted(() => {
   
   .related-actions {
     grid-template-columns: 1fr;
+  }
+  
+  .note-body {
+    padding: var(--space-md);
   }
 }
 </style>

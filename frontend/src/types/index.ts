@@ -161,3 +161,24 @@ export interface LeaderboardResponse {
   quizScore: LeaderboardDimension
   streakDays: LeaderboardDimension
 }
+
+export interface Note {
+  id: number
+  userId: number
+  wordId: number
+  word: string
+  phonetic?: string
+  pos?: string
+  meaning: string
+  content: string
+  contentSummary: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface NoteListResponse {
+  list: Note[]
+  total: number
+  page: number
+  size: number
+}

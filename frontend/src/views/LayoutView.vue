@@ -48,6 +48,11 @@
           <template #title>我的收藏</template>
         </el-menu-item>
         
+        <el-menu-item index="/notes">
+          <el-icon><Edit /></el-icon>
+          <template #title>我的笔记</template>
+        </el-menu-item>
+        
         <el-menu-item index="/records">
           <el-icon><Timer /></el-icon>
           <template #title>学习记录</template>
@@ -122,6 +127,10 @@
           <el-icon><Star /></el-icon>
           <span>我的收藏</span>
         </el-menu-item>
+        <el-menu-item index="/notes" @click="showMobileDrawer = false">
+          <el-icon><Edit /></el-icon>
+          <span>我的笔记</span>
+        </el-menu-item>
         <el-menu-item index="/records" @click="showMobileDrawer = false">
           <el-icon><Timer /></el-icon>
           <span>学习记录</span>
@@ -181,7 +190,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
   Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star,
-  Trophy
+  Trophy, Edit as EditIcon
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
