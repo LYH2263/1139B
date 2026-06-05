@@ -2,7 +2,9 @@ package com.wordmind.controller;
 
 import com.wordmind.dto.ApiResponse;
 import com.wordmind.dto.MindMapDTO;
+import com.wordmind.dto.NotificationDTO;
 import com.wordmind.dto.WordDTO;
+import com.wordmind.service.NotificationService;
 import com.wordmind.service.RelationService;
 import com.wordmind.service.WordService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +16,9 @@ import javax.validation.Valid;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -25,6 +29,9 @@ public class AdminController {
     
     @Autowired
     private RelationService relationService;
+    
+    @Autowired
+    private NotificationService notificationService;
     
     @PostMapping("/words")
     @PreAuthorize("hasRole('ADMIN')")
@@ -101,6 +108,16 @@ public class AdminController {
         return ApiResponse.success();
     }
     
+    @PostMapping("/notifications/broadcast")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Map<String, Object>> broadcastNotification(
+            @Valid @RequestBody NotificationDTO.BroadcastRequest request) {
+        int count = notificationService.broadcastSystemAnnouncement(request.getTitle(), request.getContent());
+        Map<String, Object> result = new HashMap<>();
+        result.put("sentCount", count);
+        return ApiResponse.success(result);
+    }
+
     private static class ImportResult {
         public final int importedCount;
         public final List<String> failedRows;

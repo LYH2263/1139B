@@ -89,6 +89,12 @@ const router = createRouter({
           meta: { title: '学习排行榜' }
         },
         {
+          path: 'notifications',
+          name: 'Notifications',
+          component: () => import('@/views/NotificationsView.vue'),
+          meta: { title: '消息通知' }
+        },
+        {
           path: 'admin',
           name: 'Admin',
           component: () => import('@/views/AdminView.vue'),

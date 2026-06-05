@@ -68,6 +68,11 @@
           <template #title>学习排行榜</template>
         </el-menu-item>
         
+        <el-menu-item index="/notifications">
+          <el-icon><Bell /></el-icon>
+          <template #title>消息通知</template>
+        </el-menu-item>
+        
         <el-menu-item v-if="userStore.isAdmin" index="/admin">
           <el-icon><Setting /></el-icon>
           <template #title>词库管理</template>
@@ -148,6 +153,10 @@
           <el-icon><Trophy /></el-icon>
           <span>学习排行榜</span>
         </el-menu-item>
+        <el-menu-item index="/notifications" @click="showMobileDrawer = false">
+          <el-icon><Bell /></el-icon>
+          <span>消息通知</span>
+        </el-menu-item>
         <el-menu-item v-if="userStore.isAdmin" index="/admin" @click="showMobileDrawer = false">
           <el-icon><Setting /></el-icon>
           <span>词库管理</span>
@@ -166,7 +175,8 @@
           <!-- Future Breadcrumb Slot -->
         </div>
         <div class="header-actions">
-           <el-dropdown @command="handleCommand">
+          <NotificationBell />
+          <el-dropdown @command="handleCommand">
             <div class="user-profile">
               <el-avatar :size="32" class="user-avatar">{{ userStore.userInfo?.username?.charAt(0).toUpperCase() }}</el-avatar>
               <span class="username">{{ userStore.userInfo?.username }}</span>
@@ -199,9 +209,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
   Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star,
-  Trophy, Edit as EditIcon, Compass
+  Trophy, Edit as EditIcon, Compass, Bell
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import NotificationBell from '@/components/NotificationBell.vue'
 
 const router = useRouter()
 const userStore = useUserStore()

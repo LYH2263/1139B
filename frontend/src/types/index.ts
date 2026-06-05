@@ -226,3 +226,36 @@ export interface LevelSubmitResponse {
   wrongWords: Word[]
   progress: LevelProgress
 }
+
+export type NotificationType = 'SYSTEM_ANNOUNCEMENT' | 'REVIEW_REMINDER' | 'ACHIEVEMENT' | 'QUIZ_RESULT'
+
+export interface Notification {
+  id: number
+  userId: number
+  type: NotificationType
+  title: string
+  content: string
+  read: boolean
+  createdAt: string
+}
+
+export interface NotificationListResponse {
+  list: Notification[]
+  total: number
+  unreadCount: number
+  page: number
+  size: number
+}
+
+export interface UnreadCountResponse {
+  count: number
+}
+
+export interface BroadcastRequest {
+  title: string
+  content: string
+}
+
+export interface MarkReadRequest {
+  ids: number[]
+}
