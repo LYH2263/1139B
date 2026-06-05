@@ -68,8 +68,20 @@
         
         <el-table-column prop="meaning" label="释义" min-width="200" show-overflow-tooltip />
         
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
+            <el-button 
+              link 
+              :type="isFavorite(row.id) ? 'danger' : 'warning'" 
+              size="small" 
+              :loading="favoriteLoading[row.id]"
+              @click.stop="toggleFavorite(row)"
+            >
+              <el-icon class="mr-1">
+                <component :is="isFavorite(row.id) ? 'StarFilled' : 'Star'" />
+              </el-icon> 
+              {{ isFavorite(row.id) ? '已收藏' : '收藏' }}
+            </el-button>
             <el-button link type="primary" size="small" @click="$router.push(`/mindmap/${row.id}`)">
               <el-icon class="mr-1"><Share /></el-icon> 导图
             </el-button>
@@ -109,11 +121,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Search, Refresh, Share, Plus, View } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Refresh, Share, Plus, View, Star, StarFilled } from '@element-plus/icons-vue'
 import type { Word } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
+import { favoriteApi } from '@/api/favorite'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionCard from '@/components/ui/SectionCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -121,6 +134,8 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 const router = useRouter()
 const loading = ref(false)
 const wordList = ref<Word[]>([])
+const favoriteWordIds = ref<number[]>([])
+const favoriteLoading = reactive<Record<number, boolean>>({})
 
 const searchForm = reactive({
   keyword: '',
@@ -148,6 +163,55 @@ const fetchWords = async () => {
     console.error(error)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchFavoriteWordIds = async () => {
+  try {
+    favoriteWordIds.value = await favoriteApi.getFavoriteWordIds()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const isFavorite = (wordId: number) => {
+  return favoriteWordIds.value.includes(wordId)
+}
+
+const toggleFavorite = async (word: Word) => {
+  if (favoriteLoading[word.id]) return
+  
+  if (isFavorite(word.id)) {
+    try {
+      await ElMessageBox.confirm(
+        `确定要取消收藏 "${word.word}" 吗？`,
+        '取消收藏',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    } catch {
+      return
+    }
+  }
+  
+  favoriteLoading[word.id] = true
+  try {
+    if (isFavorite(word.id)) {
+      await favoriteApi.removeFavorite(word.id)
+      favoriteWordIds.value = favoriteWordIds.value.filter(id => id !== word.id)
+      ElMessage.success(`已取消收藏 "${word.word}"`)
+    } else {
+      await favoriteApi.addFavorite(word.id)
+      favoriteWordIds.value.push(word.id)
+      ElMessage.success(`已收藏 "${word.word}"`)
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    favoriteLoading[word.id] = false
   }
 }
 
@@ -195,6 +259,7 @@ const formatPos = (pos: string) => {
 
 onMounted(() => {
   fetchWords()
+  fetchFavoriteWordIds()
 })
 </script>
 

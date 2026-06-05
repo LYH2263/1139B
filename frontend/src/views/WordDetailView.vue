@@ -2,6 +2,16 @@
   <div class="word-detail-page page-container" v-if="word">
     <PageHeader title="单词详情" @back="$router.back()">
       <template #actions>
+        <el-button 
+          :type="isFavorite ? 'danger' : 'warning'" 
+          :loading="favoriteLoading"
+          @click="toggleFavorite"
+        >
+          <el-icon class="mr-1">
+            <component :is="isFavorite ? 'StarFilled' : 'Star'" />
+          </el-icon> 
+          {{ isFavorite ? '已收藏' : '收藏' }}
+        </el-button>
         <el-button @click="$router.push(`/mindmap/${word.id}`)">
           <el-icon class="mr-1"><Share /></el-icon> 思维导图
         </el-button>
@@ -77,17 +87,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Share, Plus, Calendar } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Share, Plus, Calendar, Star, StarFilled } from '@element-plus/icons-vue'
 import type { Word } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
+import { favoriteApi } from '@/api/favorite'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ActionCard from '@/components/ui/ActionCard.vue'
 
 const route = useRoute()
 const word = ref<Word | null>(null)
 const loading = ref(false)
+const isFavorite = ref(false)
+const favoriteLoading = ref(false)
 
 const fetchWord = async () => {
   const id = Number(route.params.id)
@@ -113,6 +126,54 @@ const addToPlan = async () => {
   }
 }
 
+const fetchFavoriteStatus = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+  try {
+    const res = await favoriteApi.getFavoriteStatus(id)
+    isFavorite.value = res.isFavorite
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const toggleFavorite = async () => {
+  if (!word.value || favoriteLoading.value) return
+  
+  if (isFavorite.value) {
+    try {
+      await ElMessageBox.confirm(
+        `确定要取消收藏 "${word.value.word}" 吗？`,
+        '取消收藏',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    } catch {
+      return
+    }
+  }
+  
+  favoriteLoading.value = true
+  try {
+    if (isFavorite.value) {
+      await favoriteApi.removeFavorite(word.value.id)
+      isFavorite.value = false
+      ElMessage.success(`已取消收藏 "${word.value.word}"`)
+    } else {
+      await favoriteApi.addFavorite(word.value.id)
+      isFavorite.value = true
+      ElMessage.success(`已收藏 "${word.value.word}"`)
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 const formatPos = (pos: string) => {
   const map: Record<string, string> = {
     noun: '名词',
@@ -125,6 +186,7 @@ const formatPos = (pos: string) => {
 
 onMounted(() => {
   fetchWord()
+  fetchFavoriteStatus()
 })
 </script>
 

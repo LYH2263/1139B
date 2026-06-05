@@ -120,3 +120,25 @@ export interface StudyPlan {
   planType: string
   createdAt: string
 }
+
+export interface Favorite {
+  id: number
+  wordId: number
+  word: string
+  phonetic?: string
+  pos?: string
+  meaning: string
+  createdAt: string
+}
+
+export interface FavoriteListResponse {
+  list: Favorite[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface FavoriteStatus {
+  wordId: number
+  isFavorite: boolean
+}

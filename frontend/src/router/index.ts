@@ -59,6 +59,12 @@ const router = createRouter({
           meta: { title: '单词测验' }
         },
         {
+          path: 'favorites',
+          name: 'Favorites',
+          component: () => import('@/views/FavoritesView.vue'),
+          meta: { title: '我的收藏' }
+        },
+        {
           path: 'records',
           name: 'Records',
           component: () => import('@/views/RecordsView.vue'),
