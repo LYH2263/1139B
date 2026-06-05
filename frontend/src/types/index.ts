@@ -142,3 +142,22 @@ export interface FavoriteStatus {
   wordId: number
   isFavorite: boolean
 }
+
+export interface LeaderboardEntry {
+  rank: number
+  userId: number
+  username: string
+  value: number
+}
+
+export interface LeaderboardDimension {
+  dimension: string
+  topList: LeaderboardEntry[]
+  currentUser: LeaderboardEntry | null
+}
+
+export interface LeaderboardResponse {
+  masteredWords: LeaderboardDimension
+  quizScore: LeaderboardDimension
+  streakDays: LeaderboardDimension
+}

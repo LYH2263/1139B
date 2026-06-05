@@ -1,5 +1,5 @@
 import api from './request'
-import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan } from '@/types'
+import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LeaderboardResponse } from '@/types'
 
 export const mindMapApi = {
   getMindMap: (wordId: number, depth: number = 1): Promise<MindMapResponse> => {
@@ -38,5 +38,12 @@ export const statsApi = {
 
   createStudyPlan: (wordId: number, planType: string): Promise<StudyPlan> => {
     return api.post('/study-plans', { wordId, planType })
+  }
+}
+
+export const leaderboardApi = {
+  getLeaderboard: (dimension?: string): Promise<LeaderboardResponse> => {
+    const params = dimension ? { dimension } : {}
+    return api.get('/leaderboard', { params })
   }
 }

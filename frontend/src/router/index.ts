@@ -71,6 +71,12 @@ const router = createRouter({
           meta: { title: '学习记录' }
         },
         {
+          path: 'leaderboard',
+          name: 'Leaderboard',
+          component: () => import('@/views/LeaderboardView.vue'),
+          meta: { title: '学习排行榜' }
+        },
+        {
           path: 'admin',
           name: 'Admin',
           component: () => import('@/views/AdminView.vue'),

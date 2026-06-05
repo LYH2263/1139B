@@ -53,6 +53,11 @@
           <template #title>学习记录</template>
         </el-menu-item>
         
+        <el-menu-item index="/leaderboard">
+          <el-icon><Trophy /></el-icon>
+          <template #title>学习排行榜</template>
+        </el-menu-item>
+        
         <el-menu-item v-if="userStore.isAdmin" index="/admin">
           <el-icon><Setting /></el-icon>
           <template #title>词库管理</template>
@@ -121,6 +126,10 @@
           <el-icon><Timer /></el-icon>
           <span>学习记录</span>
         </el-menu-item>
+        <el-menu-item index="/leaderboard" @click="showMobileDrawer = false">
+          <el-icon><Trophy /></el-icon>
+          <span>学习排行榜</span>
+        </el-menu-item>
         <el-menu-item v-if="userStore.isAdmin" index="/admin" @click="showMobileDrawer = false">
           <el-icon><Setting /></el-icon>
           <span>词库管理</span>
@@ -171,7 +180,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
-  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star
+  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star,
+  Trophy
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 

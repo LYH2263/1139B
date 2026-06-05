@@ -23,4 +23,12 @@ public interface QuizRecordRepository extends JpaRepository<QuizRecord, Long> {
     @Query("SELECT COUNT(qr) FROM QuizRecord qr WHERE qr.userId = :userId AND " +
            "qr.createdAt >= :startOfDay AND qr.createdAt < :endOfDay")
     Long countTodayQuizzesByUserId(@Param("userId") Long userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT MAX(qr.score) FROM QuizRecord qr WHERE qr.userId = :userId")
+    Integer findMaxScoreByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT qr.userId, MAX(qr.score) as maxScore FROM QuizRecord qr " +
+           "GROUP BY qr.userId " +
+           "ORDER BY maxScore DESC")
+    List<Object[]> findMaxScoreRanking();
 }
