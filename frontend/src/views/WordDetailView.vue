@@ -32,6 +32,20 @@
               {{ formatPos(word.pos) }}
             </el-tag>
           </div>
+          <div v-if="wordTags.length > 0" class="word-tags">
+            <el-tag
+              v-for="tag in wordTags"
+              :key="tag.id"
+              size="small"
+              effect="dark"
+              class="word-tag-item"
+              :style="{ backgroundColor: tag.color, borderColor: tag.color }"
+              closable
+              @close="handleRemoveTag(tag)"
+            >
+              {{ tag.name }}
+            </el-tag>
+          </div>
         </div>
         
         <el-divider />
@@ -161,6 +175,65 @@
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- Tags Section -->
+      <el-card class="tags-card">
+        <div class="tags-header" @click="tagsExpanded = !tagsExpanded">
+          <div class="tags-title-wrapper">
+            <el-icon class="tags-icon"><CollectionTag /></el-icon>
+            <h3 class="tags-title">标签</h3>
+            <span v-if="wordTags.length > 0" class="tags-count">
+              {{ wordTags.length }} 个标签
+            </span>
+          </div>
+          <div class="tags-header-actions">
+            <el-button
+              v-if="allTags.length > 0"
+              type="primary"
+              size="small"
+              @click.stop="showTagSelect = true"
+            >
+              <el-icon class="mr-1"><Plus /></el-icon> 添加标签
+            </el-button>
+            <el-button
+              size="small"
+              @click.stop="openTagManage"
+            >
+              <el-icon class="mr-1"><Setting /></el-icon> 管理标签
+            </el-button>
+            <el-icon class="expand-icon" :class="{ expanded: tagsExpanded }">
+              <ArrowDown />
+            </el-icon>
+          </div>
+        </div>
+
+        <div v-show="tagsExpanded" class="tags-body">
+          <div v-if="tagsLoading" class="tags-loading">
+            <el-skeleton :rows="2" />
+          </div>
+
+          <div v-else-if="wordTags.length === 0" class="tags-empty">
+            <el-icon><CollectionTag /></el-icon>
+            <p>暂无标签</p>
+            <span class="hint">点击上方按钮为单词添加标签，或新建标签</span>
+          </div>
+
+          <div v-else class="word-tags-list">
+            <el-tag
+              v-for="tag in wordTags"
+              :key="tag.id"
+              size="large"
+              effect="dark"
+              class="word-tag-chip"
+              :style="{ backgroundColor: tag.color, borderColor: tag.color }"
+              closable
+              @close="handleRemoveTag(tag)"
+            >
+              {{ tag.name }}
+            </el-tag>
           </div>
         </div>
       </el-card>
@@ -308,6 +381,46 @@
         </ActionCard>
       </div>
     </div>
+
+    <el-dialog
+      v-model="showTagSelect"
+      title="选择标签"
+      width="480px"
+    >
+      <div v-loading="allTagsLoading" class="tag-select-container">
+        <div v-if="availableTags.length === 0" class="tags-empty">
+          <el-icon><CollectionTag /></el-icon>
+          <p>没有可用的标签</p>
+          <span class="hint">所有标签都已添加，或请先新建标签</span>
+        </div>
+        <div v-else class="tag-select-list">
+          <div
+            v-for="tag in availableTags"
+            :key="tag.id"
+            class="tag-select-item"
+            @click="handleSelectTag(tag)"
+          >
+            <span
+              class="tag-color-dot"
+              :style="{ backgroundColor: tag.color }"
+            />
+            <span class="tag-select-name">{{ tag.name }}</span>
+            <span class="tag-select-count">{{ tag.wordCount || 0 }} 个单词</span>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showTagSelect = false">取消</el-button>
+        <el-button type="primary" @click="openTagManage">
+          <el-icon class="mr-1"><Plus /></el-icon> 新建标签
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <TagManageDialog
+      v-model="showTagManage"
+      @tags-updated="fetchAllTags"
+    />
   </div>
 </template>
 
@@ -318,18 +431,20 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Share, Plus, Calendar, Heart, HeartFilled, Edit, ArrowDown, 
   EditPen, Loading, Sunny, Top, ChatDotRound, 
-  MagicStick, CollectionTag, Warning
+  MagicStick, CollectionTag, Warning, Setting
 } from '@element-plus/icons-vue'
 import { marked } from 'marked'
-import type { Word, Note } from '@/types'
+import type { Word, Note, Tag } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
 import { favoriteApi } from '@/api/favorite'
 import { noteApi } from '@/api/note'
 import { associationApi } from '@/api/association'
+import { tagApi } from '@/api/tag'
 import type { MemoryAssociation } from '@/types'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import ActionCard from '@/components/ui/ActionCard.vue'
+import TagManageDialog from '@/components/TagManageDialog.vue'
 
 marked.setOptions({
   breaks: true,
@@ -367,6 +482,19 @@ const associationTypeOptions = [
   { label: '字母联想', value: '字母联想' },
   { label: '用户分享', value: '用户分享' }
 ]
+
+const wordTags = ref<Tag[]>([])
+const allTags = ref<Tag[]>([])
+const tagsLoading = ref(false)
+const allTagsLoading = ref(false)
+const tagsExpanded = ref(true)
+const showTagSelect = ref(false)
+const showTagManage = ref(false)
+
+const availableTags = computed(() => {
+  const boundTagIds = new Set(wordTags.value.map(t => t.id))
+  return allTags.value.filter(t => !boundTagIds.has(t.id))
+})
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -644,6 +772,63 @@ const getAssociationTypeColor = (type: string) => {
   return map[type] || '#909399'
 }
 
+const fetchWordTags = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+
+  tagsLoading.value = true
+  try {
+    wordTags.value = await tagApi.getWordTags(id)
+  } catch (error) {
+    console.error(error)
+  } finally {
+    tagsLoading.value = false
+  }
+}
+
+const fetchAllTags = async () => {
+  allTagsLoading.value = true
+  try {
+    allTags.value = await tagApi.getTags()
+  } catch (error) {
+    console.error(error)
+  } finally {
+    allTagsLoading.value = false
+  }
+}
+
+const handleSelectTag = async (tag: Tag) => {
+  const id = Number(route.params.id)
+  if (!id) return
+
+  try {
+    await tagApi.bindTagToWord(id, tag.id)
+    wordTags.value.push(tag)
+    showTagSelect.value = false
+    ElMessage.success(`已添加标签"${tag.name}"`)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const handleRemoveTag = async (tag: Tag) => {
+  const id = Number(route.params.id)
+  if (!id) return
+
+  try {
+    await tagApi.unbindTagFromWord(id, tag.id)
+    wordTags.value = wordTags.value.filter(t => t.id !== tag.id)
+    ElMessage.success(`已移除标签"${tag.name}"`)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const openTagManage = () => {
+  showTagSelect.value = false
+  showTagManage.value = true
+}
+
 watch(noteContent, (newVal) => {
   if (newVal.length > 1000) {
     noteContent.value = newVal.substring(0, 1000)
@@ -655,6 +840,8 @@ onMounted(() => {
   fetchFavoriteStatus()
   fetchNote()
   fetchAssociations()
+  fetchWordTags()
+  fetchAllTags()
 })
 </script>
 
@@ -1201,6 +1388,158 @@ onMounted(() => {
 }
 
 .mr-1 { margin-right: 4px; }
+
+/* Tags Styles */
+.word-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.word-tag-item {
+  font-weight: 500;
+}
+
+.tags-card {
+  margin-bottom: var(--space-xl);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tags-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  border-bottom: 1px solid var(--c-border-light);
+  transition: background-color var(--transition-fast);
+}
+
+.tags-header:hover {
+  background-color: var(--c-bg-body);
+}
+
+.tags-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.tags-icon {
+  color: var(--c-primary);
+  font-size: 20px;
+}
+
+.tags-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.tags-count {
+  font-size: var(--font-size-xs);
+  color: var(--c-text-tertiary);
+  background-color: var(--c-bg-body);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.tags-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.tags-body {
+  padding: var(--space-lg);
+}
+
+.tags-loading {
+  padding: var(--space-md);
+}
+
+.tags-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-tertiary);
+  padding: var(--space-xl) 0;
+}
+
+.tags-empty .el-icon {
+  font-size: 40px;
+  margin-bottom: var(--space-sm);
+  opacity: 0.5;
+  color: var(--c-primary);
+}
+
+.tags-empty p {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--font-size-base);
+}
+
+.word-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.word-tag-chip {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.tag-select-container {
+  min-height: 200px;
+}
+
+.tag-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.tag-select-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background-color: var(--c-bg-body);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--c-border-light);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tag-select-item:hover {
+  border-color: var(--c-primary-light);
+  background-color: var(--c-primary-bg);
+}
+
+.tag-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.tag-select-name {
+  font-weight: 500;
+  color: var(--c-text-primary);
+}
+
+.tag-select-count {
+  font-size: var(--font-size-xs);
+  color: var(--c-text-tertiary);
+  margin-left: auto;
+}
 
 /* Responsive */
 @media (max-width: 640px) {

@@ -379,3 +379,25 @@ export interface CreateScheduleRequest {
   startDate: string
   endDate: string
 }
+
+export interface Tag {
+  id: number
+  name: string
+  color: string
+  createdAt?: string
+  wordCount?: number
+}
+
+export interface TagCreateRequest {
+  name: string
+  color: string
+}
+
+export interface TagUpdateRequest {
+  name?: string
+  color?: string
+}
+
+export interface WordTagBindRequest {
+  tagId: number
+}

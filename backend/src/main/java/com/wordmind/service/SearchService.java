@@ -34,17 +34,37 @@ public class SearchService {
     @Autowired
     private WordService wordService;
 
-    public SearchDTO.SearchResponse searchWords(String keyword, String pos, int page, int size, Long userId) {
+    @Autowired
+    private TagService tagService;
+
+    public SearchDTO.SearchResponse searchWords(String keyword, String pos, List<Long> tagIds, int page, int size, Long userId) {
         Pageable pageable = PageRequest.of(page - 1, size);
+
+        List<Long> tagFilteredWordIds = (tagIds != null && !tagIds.isEmpty() && userId != null)
+                ? tagService.getWordIdsByTags(userId, tagIds)
+                : null;
 
         if (keyword == null || keyword.trim().isEmpty()) {
             Page<Word> wordPage = wordRepository.searchWords(null, pos, pageable);
-            List<WordDTO.Response> list = wordPage.getContent().stream()
+            List<Word> words = wordPage.getContent();
+
+            if (tagFilteredWordIds != null) {
+                words = words.stream()
+                        .filter(w -> tagFilteredWordIds.contains(w.getId()))
+                        .collect(Collectors.toList());
+            }
+
+            long total = tagFilteredWordIds != null
+                    ? words.size()
+                    : wordPage.getTotalElements();
+
+            List<WordDTO.Response> list = words.stream()
                     .map(wordService::convertToDTO)
                     .collect(Collectors.toList());
+
             return SearchDTO.SearchResponse.builder()
                     .list(list)
-                    .total(wordPage.getTotalElements())
+                    .total(total)
                     .page(page)
                     .size(size)
                     .build();
@@ -62,6 +82,12 @@ public class SearchService {
         if (pos != null && !pos.trim().isEmpty()) {
             matchedWords = matchedWords.stream()
                     .filter(word -> pos.equalsIgnoreCase(word.getPos()))
+                    .collect(Collectors.toList());
+        }
+
+        if (tagFilteredWordIds != null) {
+            matchedWords = matchedWords.stream()
+                    .filter(w -> tagFilteredWordIds.contains(w.getId()))
                     .collect(Collectors.toList());
         }
 

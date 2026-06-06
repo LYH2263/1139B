@@ -23,11 +23,12 @@ public class SearchController {
     public ApiResponse<SearchDTO.SearchResponse> searchWords(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String pos,
+            @RequestParam(required = false) List<Long> tagIds,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserPrincipal principal) {
         Long userId = principal != null ? principal.getId() : null;
-        return ApiResponse.success(searchService.searchWords(keyword, pos, page, size, userId));
+        return ApiResponse.success(searchService.searchWords(keyword, pos, tagIds, page, size, userId));
     }
 
     @GetMapping("/suggestions")

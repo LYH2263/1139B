@@ -2,7 +2,7 @@ import api from './request'
 import type { SearchSuggestion, SearchHistoryItem, HotKeyword, SearchResponse } from '@/types'
 
 export const searchApi = {
-  searchWords: (params?: { keyword?: string; pos?: string; page?: number; size?: number }): Promise<SearchResponse> => {
+  searchWords: (params?: { keyword?: string; pos?: string; tagIds?: number[]; page?: number; size?: number }): Promise<SearchResponse> => {
     return api.get('/search', { params })
   },
 

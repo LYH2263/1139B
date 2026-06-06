@@ -136,7 +136,46 @@
             <el-option label="副词 (Adverb)" value="adverb" />
           </el-select>
         </el-form-item>
+
+        <el-form-item label="标签">
+          <el-button
+            type="primary"
+            plain
+            size="small"
+            @click="showTagManage = true"
+          >
+            <el-icon class="mr-1"><Setting /></el-icon> 管理
+          </el-button>
+        </el-form-item>
       </el-form>
+
+      <div v-if="allTags.length > 0" class="tag-filter-bar">
+        <span class="tag-filter-label">筛选标签：</span>
+        <div class="tag-filter-chips">
+          <el-tag
+            v-for="tag in allTags"
+            :key="tag.id"
+            class="tag-filter-chip"
+            :effect="selectedTagIds.includes(tag.id) ? 'dark' : 'plain'"
+            :style="selectedTagIds.includes(tag.id) ? { backgroundColor: tag.color, borderColor: tag.color } : { color: tag.color, borderColor: tag.color + '80' }"
+            closable
+            @close="toggleTag(tag.id)"
+            @click="toggleTag(tag.id)"
+          >
+            {{ tag.name }}
+            <span class="chip-count">({{ tag.wordCount || 0 }})</span>
+          </el-tag>
+        </div>
+        <el-button
+          v-if="selectedTagIds.length > 0"
+          link
+          type="info"
+          size="small"
+          @click="clearTagFilter"
+        >
+          清除筛选
+        </el-button>
+      </div>
     </SectionCard>
     
     <!-- Words Table -->
@@ -216,6 +255,11 @@
         />
       </div>
     </SectionCard>
+
+    <TagManageDialog
+      v-model="showTagManage"
+      @tags-updated="fetchAllTags"
+    />
   </div>
 </template>
 
@@ -225,16 +269,18 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Search, Refresh, Share, Plus, View, Heart, HeartFilled, 
-  Clock, TrendCharts 
+  Clock, TrendCharts, Setting
 } from '@element-plus/icons-vue'
-import type { Word, SearchSuggestion, SearchHistoryItem, HotKeyword } from '@/types'
+import type { Word, SearchSuggestion, SearchHistoryItem, HotKeyword, Tag } from '@/types'
 import { wordApi } from '@/api/word'
 import { searchApi } from '@/api/search'
 import { statsApi } from '@/api/study'
 import { favoriteApi } from '@/api/favorite'
+import { tagApi } from '@/api/tag'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionCard from '@/components/ui/SectionCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import TagManageDialog from '@/components/TagManageDialog.vue'
 
 const router = useRouter()
 const loading = ref(false)
@@ -265,12 +311,17 @@ const pagination = reactive({
   total: 0
 })
 
+const allTags = ref<Tag[]>([])
+const selectedTagIds = ref<number[]>([])
+const showTagManage = ref(false)
+
 const fetchWords = async () => {
   loading.value = true
   try {
     const res = await searchApi.searchWords({
       keyword: searchForm.keyword || undefined,
       pos: searchForm.pos || undefined,
+      tagIds: selectedTagIds.value.length > 0 ? selectedTagIds.value : undefined,
       page: pagination.page,
       size: pagination.size
     })
@@ -469,6 +520,7 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.keyword = ''
   searchForm.pos = ''
+  selectedTagIds.value = []
   pagination.page = 1
   suggestions.value = []
   fetchWords()
@@ -504,9 +556,35 @@ const formatPos = (pos: string) => {
   return map[pos] || pos
 }
 
+const fetchAllTags = async () => {
+  try {
+    allTags.value = await tagApi.getTags()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const toggleTag = (tagId: number) => {
+  const index = selectedTagIds.value.indexOf(tagId)
+  if (index > -1) {
+    selectedTagIds.value.splice(index, 1)
+  } else {
+    selectedTagIds.value.push(tagId)
+  }
+  pagination.page = 1
+  fetchWords()
+}
+
+const clearTagFilter = () => {
+  selectedTagIds.value = []
+  pagination.page = 1
+  fetchWords()
+}
+
 onMounted(() => {
   fetchWords()
   fetchFavoriteWordIds()
+  fetchAllTags()
 })
 </script>
 
@@ -660,4 +738,46 @@ onMounted(() => {
   color: var(--c-text-secondary);
   font-size: 13px;
 }
+
+.tag-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--c-border-light);
+  margin-top: var(--space-sm);
+}
+
+.tag-filter-label {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-secondary);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.tag-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.tag-filter-chip {
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.tag-filter-chip:hover {
+  opacity: 0.85;
+}
+
+.chip-count {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+.mr-1 { margin-right: 4px; }
 </style>
