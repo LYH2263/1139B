@@ -311,3 +311,71 @@ export interface SearchResponse {
   page: number
   size: number
 }
+
+export interface StudySchedule {
+  id: number
+  userId: number
+  name: string
+  targetWordIds: number[]
+  dailyCount: number
+  startDate: string
+  endDate: string
+  status: string
+  createdAt: string
+  totalDays: number
+  completedDays: number
+  totalWords: number
+  learnedWords: number
+  progressPercent: number
+}
+
+export interface ScheduleWordItem {
+  wordId: number
+  word: string
+  phonetic?: string
+  meaning: string
+  example?: string
+  type: 'NEW' | 'REVIEW'
+  isCompleted: boolean
+}
+
+export interface ScheduleTodayResponse {
+  scheduleId: number
+  scheduleName: string
+  date: string
+  plannedWords: ScheduleWordItem[]
+  completedWords: ScheduleWordItem[]
+  newWords: ScheduleWordItem[]
+  reviewWords: ScheduleWordItem[]
+  totalCount: number
+  completedCount: number
+  isCompleted: boolean
+}
+
+export interface ScheduleProgressDetail {
+  date: string
+  plannedWordIds: number[]
+  completedWordIds: number[]
+  plannedCount: number
+  completedCount: number
+  isCompleted: boolean
+}
+
+export interface ScheduleDetailResponse {
+  schedule: StudySchedule
+  progressList: ScheduleProgressDetail[]
+  ganttData: number[]
+}
+
+export interface ScheduleListResponse {
+  list: StudySchedule[]
+  total: number
+}
+
+export interface CreateScheduleRequest {
+  name: string
+  targetWordIds: number[]
+  dailyCount: number
+  startDate: string
+  endDate: string
+}

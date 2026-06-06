@@ -33,6 +33,11 @@
           <template #title>思维导图</template>
         </el-menu-item>
         
+        <el-menu-item index="/schedule">
+          <el-icon><List /></el-icon>
+          <template #title>学习计划</template>
+        </el-menu-item>
+        
         <el-menu-item index="/review">
           <el-icon><Calendar /></el-icon>
           <template #title>今日复习</template>
@@ -125,6 +130,10 @@
           <el-icon><Share /></el-icon>
           <span>思维导图</span>
         </el-menu-item>
+        <el-menu-item index="/schedule" @click="showMobileDrawer = false">
+          <el-icon><List /></el-icon>
+          <span>学习计划</span>
+        </el-menu-item>
         <el-menu-item index="/review" @click="showMobileDrawer = false">
           <el-icon><Calendar /></el-icon>
           <span>今日复习</span>
@@ -209,7 +218,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
   Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Star,
-  Trophy, Edit as EditIcon, Compass, Bell
+  Trophy, Edit as EditIcon, Compass, Bell, List
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import NotificationBell from '@/components/NotificationBell.vue'
