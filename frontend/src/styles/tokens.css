@@ -7,9 +7,17 @@
   
   /* Functional Colors */
   --c-success: #10b981;
+  --c-success-light: #34d399;
+  --c-success-bg: #ecfdf5;
   --c-warning: #f59e0b;
+  --c-warning-light: #fbbf24;
+  --c-warning-bg: #fffbeb;
   --c-danger: #ef4444;
+  --c-danger-light: #f87171;
+  --c-danger-bg: #fef2f2;
   --c-info: #64748b;
+  --c-info-light: #94a3b8;
+  --c-info-bg: #f8fafc;
 
   /* Neutral Scale */
   --c-text-primary: #1e293b;

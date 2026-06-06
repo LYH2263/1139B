@@ -68,8 +68,8 @@
           <div class="note-title-wrapper">
             <el-icon class="note-icon"><Edit /></el-icon>
             <h3 class="note-title">我的笔记</h3>
-            <span v-if="note" class="note-saved-status">
-              {{ noteSaving ? '保存中...' : '已保存' }}
+            <span v-if="note" class="note-saved-status" :class="{ error: noteSaveError }">
+              {{ noteSaving ? '保存中...' : (noteSaveError ? '保存失败' : '已保存') }}
             </span>
           </div>
           <el-icon class="expand-icon" :class="{ expanded: noteExpanded }">
@@ -151,9 +151,13 @@
               </div>
               
               <div class="editor-footer">
-                <span class="auto-save-hint">
+                <span class="auto-save-hint" :class="{ error: noteSaveError }">
                   <el-icon v-if="noteSaving" class="saving-icon"><Loading /></el-icon>
-                  {{ noteSaving ? '正在自动保存...' : (lastSavedAt ? '上次保存：' + lastSavedAt : '修改后 2 秒自动保存') }}
+                  <el-icon v-else-if="noteSaveError" class="error-icon"><Warning /></el-icon>
+                  <template v-if="noteSaving">正在自动保存...</template>
+                  <template v-else-if="noteSaveError">自动保存失败，请检查网络或稍后手动保存</template>
+                  <template v-else-if="lastSavedAt">上次保存：{{ lastSavedAt }}</template>
+                  <template v-else>修改后 2 秒自动保存</template>
                 </span>
               </div>
             </div>
@@ -314,7 +318,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Share, Plus, Calendar, Heart, HeartFilled, Edit, ArrowDown, 
   EditPen, Loading, Sunny, Top, ChatDotRound, 
-  MagicStick, CollectionTag 
+  MagicStick, CollectionTag, Warning
 } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 import type { Word, Note } from '@/types'
@@ -343,6 +347,7 @@ const noteLoading = ref(false)
 const noteExpanded = ref(true)
 const noteEditing = ref(false)
 const noteSaving = ref(false)
+const noteSaveError = ref(false)
 const noteContent = ref('')
 const editorMode = ref<'edit' | 'preview'>('edit')
 const lastSavedAt = ref('')
@@ -466,6 +471,7 @@ const fetchNote = async () => {
 
 const startEditing = () => {
   noteEditing.value = true
+  noteSaveError.value = false
   editorMode.value = 'edit'
   nextTick(() => {
     const textarea = document.querySelector('.note-editor textarea') as HTMLTextAreaElement
@@ -482,6 +488,7 @@ const cancelEditing = () => {
     noteContent.value = ''
   }
   noteEditing.value = false
+  noteSaveError.value = false
   if (saveTimer) {
     clearTimeout(saveTimer)
     saveTimer = null
@@ -489,15 +496,16 @@ const cancelEditing = () => {
 }
 
 const onContentChange = () => {
+  noteSaveError.value = false
   if (saveTimer) {
     clearTimeout(saveTimer)
   }
   saveTimer = setTimeout(() => {
-    saveNote()
+    saveNote(false)
   }, 2000)
 }
 
-const saveNote = async () => {
+const saveNote = async (isManual: boolean = true) => {
   const id = Number(route.params.id)
   if (!id || !noteContent.value.trim()) return
   
@@ -507,6 +515,7 @@ const saveNote = async () => {
   }
   
   noteSaving.value = true
+  noteSaveError.value = false
   try {
     if (note.value) {
       note.value = await noteApi.updateNote(id, noteContent.value.trim())
@@ -514,9 +523,16 @@ const saveNote = async () => {
       note.value = await noteApi.createNote(id, noteContent.value.trim())
     }
     lastSavedAt.value = formatSaveTime(note.value.updatedAt)
-    noteEditing.value = false
-  } catch (error) {
+    if (isManual) {
+      noteEditing.value = false
+      ElMessage.success('笔记保存成功')
+    }
+  } catch (error: any) {
     console.error(error)
+    noteSaveError.value = true
+    if (isManual) {
+      ElMessage.error(error?.message || '笔记保存失败，请稍后重试')
+    }
   } finally {
     noteSaving.value = false
   }
@@ -770,6 +786,11 @@ onMounted(() => {
   border-radius: var(--radius-full);
 }
 
+.note-saved-status.error {
+  color: var(--c-danger);
+  background-color: var(--c-danger-bg);
+}
+
 .expand-icon {
   color: var(--c-text-tertiary);
   transition: transform var(--transition-normal);
@@ -899,9 +920,17 @@ onMounted(() => {
   gap: 4px;
 }
 
+.auto-save-hint.error {
+  color: var(--c-danger);
+}
+
 .saving-icon {
   animation: spin 1s linear infinite;
   color: var(--c-primary);
+}
+
+.error-icon {
+  color: var(--c-danger);
 }
 
 @keyframes spin {
