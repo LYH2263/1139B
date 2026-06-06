@@ -78,7 +78,7 @@ public class WordService {
         wordRepository.delete(word);
     }
     
-    private WordDTO.Response convertToDTO(Word word) {
+    public WordDTO.Response convertToDTO(Word word) {
         return WordDTO.Response.builder()
                 .id(word.getId())
                 .word(word.getWord())

@@ -286,3 +286,28 @@ export interface AssociationUpvoteResponse {
   id: number
   upvotes: number
 }
+
+export interface SearchSuggestion {
+  id: number
+  word: string
+  meaning: string
+  matchType: string
+}
+
+export interface SearchHistoryItem {
+  id: number
+  keyword: string
+  searchedAt: string
+}
+
+export interface HotKeyword {
+  keyword: string
+  count: number
+}
+
+export interface SearchResponse {
+  list: Word[]
+  total: number
+  page: number
+  size: number
+}

@@ -35,6 +35,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     
+    // Pinyin
+    implementation 'com.belerweb:pinyin4j:2.5.1'
+    
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
