@@ -8,7 +8,7 @@
           @click="toggleFavorite"
         >
           <el-icon class="mr-1">
-            <component :is="isFavorite ? 'HeartFilled' : 'Heart'" />
+            <component :is="isFavorite ? 'StarFilled' : 'Star'" />
           </el-icon> 
           {{ isFavorite ? '已收藏' : '收藏' }}
         </el-button>
@@ -429,7 +429,7 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Share, Plus, Calendar, Heart, HeartFilled, Edit, ArrowDown, 
+  Share, Plus, Calendar, Star, StarFilled, Edit, ArrowDown, 
   EditPen, Loading, Sunny, Top, ChatDotRound, 
   MagicStick, CollectionTag, Warning, Setting
 } from '@element-plus/icons-vue'

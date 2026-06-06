@@ -218,7 +218,7 @@
               @click.stop="toggleFavorite(row)"
             >
               <el-icon class="mr-1">
-                <component :is="isFavorite(row.id) ? 'HeartFilled' : 'Heart'" />
+                <component :is="isFavorite(row.id) ? 'StarFilled' : 'Star'" />
               </el-icon> 
               {{ isFavorite(row.id) ? '已收藏' : '收藏' }}
             </el-button>
@@ -268,7 +268,7 @@ import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Search, Refresh, Share, Plus, View, Heart, HeartFilled, 
+  Search, Refresh, Share, Plus, View, Star, StarFilled, 
   Clock, TrendCharts, Setting
 } from '@element-plus/icons-vue'
 import type { Word, SearchSuggestion, SearchHistoryItem, HotKeyword, Tag } from '@/types'
