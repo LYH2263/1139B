@@ -31,7 +31,7 @@ public class Level {
     @Column(name = "passing_score", nullable = false)
     private Integer passingScore;
     
-    @Column(nullable = false)
+    @Column(name = "level_order", nullable = false)
     private Integer order;
     
     @CreationTimestamp

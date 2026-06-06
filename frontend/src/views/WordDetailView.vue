@@ -165,7 +165,7 @@
       <el-card class="association-card">
         <div class="association-header" @click="associationsExpanded = !associationsExpanded">
           <div class="association-title-wrapper">
-            <el-icon class="association-icon"><Lightbulb /></el-icon>
+            <el-icon class="association-icon"><Sunny /></el-icon>
             <h3 class="association-title">记忆法</h3>
             <span v-if="associations.length > 0" class="association-count">
               {{ associations.length }} 条联想
@@ -231,7 +231,7 @@
           </div>
 
           <div v-else-if="associations.length === 0" class="associations-empty">
-            <el-icon><Lightbulb /></el-icon>
+            <el-icon><Sunny /></el-icon>
             <p>暂无记忆联想</p>
             <span class="hint">点击上方按钮，分享你的记忆法吧</span>
           </div>
@@ -273,7 +273,7 @@
                 size="small"
                 @click.stop="upvoteAssociation(assoc.id)"
               >
-                <el-icon><ThumbsUp /></el-icon>
+                <el-icon><Top /></el-icon>
                 {{ assoc.upvotes }}
               </el-button>
               </div>
@@ -313,7 +313,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Share, Plus, Calendar, Star, StarFilled, Edit, ArrowDown, 
-  EditPen, Loading, Lightbulb, ThumbsUp, ChatDotRound, 
+  EditPen, Loading, Sunny, Top, ChatDotRound, 
   MagicStick, CollectionTag 
 } from '@element-plus/icons-vue'
 import { marked } from 'marked'
@@ -610,10 +610,10 @@ const getAssociationTypeIcon = (type: string) => {
   const map: Record<string, any> = {
     '词根拆解': MagicStick,
     '谐音联想': CollectionTag,
-    '字母联想': Lightbulb,
+    '字母联想': Sunny,
     '用户分享': ChatDotRound
   }
-  return map[type] || Lightbulb
+  return map[type] || Sunny
 }
 
 const getAssociationTypeColor = (type: string) => {

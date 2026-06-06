@@ -30,7 +30,7 @@ public class NotificationService {
         Page<Notification> notificationPage;
         
         if (read != null) {
-            notificationPage = notificationRepository.findByUserIdAndRead(userId, read, pageable);
+            notificationPage = notificationRepository.findByUserIdAndIsRead(userId, read, pageable);
         } else {
             notificationPage = notificationRepository.findByUserId(userId, pageable);
         }
@@ -39,7 +39,7 @@ public class NotificationService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
 
-        long unreadCount = notificationRepository.countByUserIdAndRead(userId, false);
+        long unreadCount = notificationRepository.countByUserIdAndIsRead(userId, false);
 
         return NotificationDTO.PageResponse.builder()
                 .list(list)
@@ -58,7 +58,7 @@ public class NotificationService {
     }
 
     public long getUnreadCount(Long userId) {
-        return notificationRepository.countByUserIdAndRead(userId, false);
+        return notificationRepository.countByUserIdAndIsRead(userId, false);
     }
 
     @Transactional
@@ -88,7 +88,7 @@ public class NotificationService {
         notification.setType(type);
         notification.setTitle(title);
         notification.setContent(content);
-        notification.setRead(false);
+        notification.setIsRead(false);
         notificationRepository.save(notification);
     }
 
@@ -102,7 +102,7 @@ public class NotificationService {
             notification.setType(Notification.NotificationType.SYSTEM_ANNOUNCEMENT);
             notification.setTitle(title);
             notification.setContent(content);
-            notification.setRead(false);
+            notification.setIsRead(false);
             notificationRepository.save(notification);
             count++;
         }
@@ -116,7 +116,7 @@ public class NotificationService {
                 .type(notification.getType())
                 .title(notification.getTitle())
                 .content(notification.getContent())
-                .read(notification.getRead())
+                .read(notification.getIsRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
     }

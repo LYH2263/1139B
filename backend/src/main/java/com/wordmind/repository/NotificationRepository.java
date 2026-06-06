@@ -16,16 +16,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Page<Notification> findByUserId(Long userId, Pageable pageable);
 
-    Page<Notification> findByUserIdAndRead(Long userId, Boolean read, Pageable pageable);
+    Page<Notification> findByUserIdAndIsRead(Long userId, Boolean isRead, Pageable pageable);
 
-    long countByUserIdAndRead(Long userId, Boolean read);
+    long countByUserIdAndIsRead(Long userId, Boolean isRead);
 
     @Modifying
-    @Query("UPDATE Notification n SET n.read = true WHERE n.userId = :userId AND n.read = false")
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.userId = :userId AND n.isRead = false")
     int markAllAsRead(@Param("userId") Long userId);
 
     @Modifying
-    @Query("UPDATE Notification n SET n.read = true WHERE n.id = :id AND n.userId = :userId")
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.id = :id AND n.userId = :userId")
     int markAsRead(@Param("id") Long id, @Param("userId") Long userId);
 
     @Query("SELECT n FROM Notification n WHERE n.userId = :userId ORDER BY n.createdAt DESC")

@@ -29,7 +29,7 @@ public class Notification {
     private String content;
 
     @Column(name = "is_read", nullable = false)
-    private Boolean read = false;
+    private Boolean isRead = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -18,49 +18,21 @@ import java.util.stream.Collectors;
 
 @Service
 public class FavoriteService {
-    
+
     @Autowired
     private FavoriteRepository favoriteRepository;
-    
+
     @Autowired
     private WordRepository wordRepository;
-    
-    @Transactional
-    public FavoriteDTO.Response addFavorite(Long userId, Long wordId) {
-        Word word = wordRepository.findById(wordId)
-                .orElseThrow(() -> new RuntimeException("单词不存在"));
-        
-        if (favoriteRepository.existsByUserIdAndWordId(userId, wordId)) {
-            throw new RuntimeException("该单词已收藏");
-        }
-        
-        Favorite favorite = new Favorite();
-        favorite.setUserId(userId);
-        favorite.setWordId(wordId);
-        Favorite saved = favoriteRepository.save(favorite);
-        
-        return convertToDTO(saved, word);
-    }
-    
-    @Transactional
-    public void removeFavorite(Long userId, Long wordId) {
-        if (!favoriteRepository.existsByUserIdAndWordId(userId, wordId)) {
-            throw new RuntimeException("该单词未收藏");
-        }
-        favoriteRepository.deleteByUserIdAndWordId(userId, wordId);
-    }
-    
+
     public FavoriteDTO.PageResponse getFavorites(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<Favorite> favoritePage = favoriteRepository.findByUserId(userId, pageable);
-        
+
         List<FavoriteDTO.Response> list = favoritePage.getContent().stream()
-                .map(favorite -> {
-                    Word word = wordRepository.findById(favorite.getWordId()).orElse(null);
-                    return convertToDTO(favorite, word);
-                })
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        
+
         return FavoriteDTO.PageResponse.builder()
                 .list(list)
                 .total(favoritePage.getTotalElements())
@@ -68,20 +40,46 @@ public class FavoriteService {
                 .size(size)
                 .build();
     }
-    
+
     public List<Long> getFavoriteWordIds(Long userId) {
         return favoriteRepository.findFavoriteWordIdsByUserId(userId);
     }
-    
+
     public FavoriteDTO.FavoriteStatus getFavoriteStatus(Long userId, Long wordId) {
-        boolean isFavorite = favoriteRepository.existsByUserIdAndWordId(userId, wordId);
+        boolean exists = favoriteRepository.existsByUserIdAndWordId(userId, wordId);
         return FavoriteDTO.FavoriteStatus.builder()
                 .wordId(wordId)
-                .isFavorite(isFavorite)
+                .isFavorite(exists)
                 .build();
     }
-    
-    private FavoriteDTO.Response convertToDTO(Favorite favorite, Word word) {
+
+    @Transactional
+    public FavoriteDTO.Response addFavorite(Long userId, Long wordId) {
+        wordRepository.findById(wordId)
+                .orElseThrow(() -> new RuntimeException("单词不存在"));
+
+        if (favoriteRepository.existsByUserIdAndWordId(userId, wordId)) {
+            throw new RuntimeException("该单词已收藏");
+        }
+
+        Favorite favorite = new Favorite();
+        favorite.setUserId(userId);
+        favorite.setWordId(wordId);
+        Favorite saved = favoriteRepository.save(favorite);
+
+        return convertToDTO(saved);
+    }
+
+    @Transactional
+    public void removeFavorite(Long userId, Long wordId) {
+        if (!favoriteRepository.existsByUserIdAndWordId(userId, wordId)) {
+            throw new RuntimeException("该单词未收藏");
+        }
+        favoriteRepository.deleteByUserIdAndWordId(userId, wordId);
+    }
+
+    private FavoriteDTO.Response convertToDTO(Favorite favorite) {
+        Word word = wordRepository.findById(favorite.getWordId()).orElse(null);
         return FavoriteDTO.Response.builder()
                 .id(favorite.getId())
                 .wordId(favorite.getWordId())

@@ -30,13 +30,13 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
     @Query("SELECT COUNT(DISTINCT rr.wordId) FROM ReviewRecord rr WHERE rr.userId = :userId AND rr.proficiency >= 4")
     Long countMasteredWordsByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT rr.userId, COUNT(DISTINCT rr.wordId) as masteredCount FROM ReviewRecord rr " +
+    @Query("SELECT rr.userId, COUNT(DISTINCT rr.wordId) FROM ReviewRecord rr " +
            "WHERE rr.proficiency >= 4 " +
            "GROUP BY rr.userId " +
-           "ORDER BY masteredCount DESC")
+           "ORDER BY COUNT(DISTINCT rr.wordId) DESC")
     List<Object[]> findMasteredWordsRanking();
 
-    @Query("SELECT DISTINCT FUNCTION('DATE', rr.createdAt) FROM ReviewRecord rr WHERE rr.userId = :userId ORDER BY rr.createdAt DESC")
+    @Query(value = "SELECT DISTINCT CAST(rr.created_at AS DATE) FROM review_records rr WHERE rr.user_id = :userId ORDER BY 1 DESC", nativeQuery = true)
     List<java.time.LocalDate> findDistinctReviewDatesByUserId(@Param("userId") Long userId);
 
     @Query("SELECT rr.userId FROM ReviewRecord rr GROUP BY rr.userId")

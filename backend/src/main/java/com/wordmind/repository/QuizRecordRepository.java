@@ -27,8 +27,8 @@ public interface QuizRecordRepository extends JpaRepository<QuizRecord, Long> {
     @Query("SELECT MAX(qr.score) FROM QuizRecord qr WHERE qr.userId = :userId")
     Integer findMaxScoreByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT qr.userId, MAX(qr.score) as maxScore FROM QuizRecord qr " +
+    @Query("SELECT qr.userId, MAX(qr.score) FROM QuizRecord qr " +
            "GROUP BY qr.userId " +
-           "ORDER BY maxScore DESC")
+           "ORDER BY MAX(qr.score) DESC")
     List<Object[]> findMaxScoreRanking();
 }
