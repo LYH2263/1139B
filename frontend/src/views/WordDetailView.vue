@@ -8,7 +8,7 @@
           @click="toggleFavorite"
         >
           <el-icon class="mr-1">
-            <component :is="isFavorite ? 'StarFilled' : 'Star'" />
+            <component :is="isFavorite ? 'HeartFilled' : 'Heart'" />
           </el-icon> 
           {{ isFavorite ? '已收藏' : '收藏' }}
         </el-button>
@@ -312,7 +312,7 @@ import { ref, onMounted, watch, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Share, Plus, Calendar, Star, StarFilled, Edit, ArrowDown, 
+  Share, Plus, Calendar, Heart, HeartFilled, Edit, ArrowDown, 
   EditPen, Loading, Sunny, Top, ChatDotRound, 
   MagicStick, CollectionTag 
 } from '@element-plus/icons-vue'
@@ -404,6 +404,7 @@ const fetchFavoriteStatus = async () => {
     isFavorite.value = res.isFavorite
   } catch (error) {
     console.error(error)
+    ElMessage.error('获取收藏状态失败')
   }
 }
 
@@ -439,6 +440,7 @@ const toggleFavorite = async () => {
     }
   } catch (error) {
     console.error(error)
+    ElMessage.error(isFavorite.value ? '取消收藏失败' : '收藏失败')
   } finally {
     favoriteLoading.value = false
   }

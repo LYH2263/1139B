@@ -78,7 +78,7 @@
               @click.stop="toggleFavorite(row)"
             >
               <el-icon class="mr-1">
-                <component :is="isFavorite(row.id) ? 'StarFilled' : 'Star'" />
+                <component :is="isFavorite(row.id) ? 'HeartFilled' : 'Heart'" />
               </el-icon> 
               {{ isFavorite(row.id) ? '已收藏' : '收藏' }}
             </el-button>
@@ -122,7 +122,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Refresh, Share, Plus, View, Star, StarFilled } from '@element-plus/icons-vue'
+import { Search, Refresh, Share, Plus, View, Heart, HeartFilled } from '@element-plus/icons-vue'
 import type { Word } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
@@ -171,6 +171,7 @@ const fetchFavoriteWordIds = async () => {
     favoriteWordIds.value = await favoriteApi.getFavoriteWordIds()
   } catch (error) {
     console.error(error)
+    ElMessage.error('获取收藏列表失败')
   }
 }
 
@@ -210,6 +211,7 @@ const toggleFavorite = async (word: Word) => {
     }
   } catch (error) {
     console.error(error)
+    ElMessage.error(isFavorite(word.id) ? '取消收藏失败' : '收藏失败')
   } finally {
     favoriteLoading[word.id] = false
   }

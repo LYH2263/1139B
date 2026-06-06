@@ -50,7 +50,7 @@
               :loading="removeLoading[row.id]"
               @click="handleRemove(row)"
             >
-              <el-icon class="mr-1"><StarFilled /></el-icon> 取消收藏
+              <el-icon class="mr-1"><HeartFilled /></el-icon> 取消收藏
             </el-button>
             <el-button link type="info" size="small" @click="$router.push(`/words/${row.wordId}`)">
               <el-icon class="mr-1"><View /></el-icon> 详情
@@ -62,7 +62,7 @@
           <EmptyState 
             title="暂无收藏的单词" 
             description="去单词列表逛逛，收藏您感兴趣的单词吧。"
-            :icon="Star"
+            :icon="Heart"
           >
             <template #action>
               <el-button type="primary" @click="$router.push('/words')">
@@ -93,7 +93,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { StarFilled, View, Star } from '@element-plus/icons-vue'
+import { HeartFilled, View, Heart } from '@element-plus/icons-vue'
 import type { Favorite } from '@/types'
 import { favoriteApi } from '@/api/favorite'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -122,6 +122,7 @@ const fetchFavorites = async () => {
     pagination.total = res.total
   } catch (error) {
     console.error(error)
+    ElMessage.error('加载收藏列表失败')
   } finally {
     loading.value = false
   }
@@ -157,6 +158,7 @@ const handleRemove = async (favorite: Favorite) => {
     }
   } catch (error) {
     console.error(error)
+    ElMessage.error('取消收藏失败')
   } finally {
     removeLoading[favorite.id] = false
   }
