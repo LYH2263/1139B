@@ -182,8 +182,20 @@ public class LeaderboardService {
     }
 
     public int calculateMaxStreakDays(Long userId) {
-        List<LocalDate> reviewDates = reviewRecordRepository.findDistinctReviewDatesByUserId(userId);
-        if (reviewDates == null || reviewDates.isEmpty()) {
+        List<Object> rawDates = reviewRecordRepository.findDistinctReviewDatesByUserId(userId);
+        if (rawDates == null || rawDates.isEmpty()) {
+            return 0;
+        }
+
+        List<LocalDate> reviewDates = new ArrayList<>();
+        for (Object obj : rawDates) {
+            LocalDate date = convertToLocalDate(obj);
+            if (date != null) {
+                reviewDates.add(date);
+            }
+        }
+
+        if (reviewDates.isEmpty()) {
             return 0;
         }
 
@@ -205,5 +217,24 @@ public class LeaderboardService {
         }
 
         return maxStreak;
+    }
+
+    private LocalDate convertToLocalDate(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof LocalDate) {
+            return (LocalDate) obj;
+        }
+        if (obj instanceof java.sql.Date) {
+            return ((java.sql.Date) obj).toLocalDate();
+        }
+        if (obj instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) obj).toLocalDateTime().toLocalDate();
+        }
+        if (obj instanceof java.util.Date) {
+            return ((java.util.Date) obj).toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+        }
+        return null;
     }
 }

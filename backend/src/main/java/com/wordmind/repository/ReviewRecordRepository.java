@@ -37,7 +37,7 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
     List<Object[]> findMasteredWordsRanking();
 
     @Query(value = "SELECT DISTINCT CAST(rr.created_at AS DATE) FROM review_records rr WHERE rr.user_id = :userId ORDER BY 1 DESC", nativeQuery = true)
-    List<java.time.LocalDate> findDistinctReviewDatesByUserId(@Param("userId") Long userId);
+    List<Object> findDistinctReviewDatesByUserId(@Param("userId") Long userId);
 
     @Query("SELECT rr.userId FROM ReviewRecord rr GROUP BY rr.userId")
     List<Long> findAllUserIdsWithRecords();

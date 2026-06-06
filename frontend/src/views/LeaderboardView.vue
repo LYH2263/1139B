@@ -5,7 +5,7 @@
       subtitle="与其他学习者一较高下，激励自己持续进步！"
     >
       <template #actions>
-        <el-button type="primary" @click="fetchLeaderboard" :loading="loading">
+        <el-button type="primary" @click="fetchLeaderboard()" :loading="loading">
           <el-icon class="mr-1"><Refresh /></el-icon> 刷新数据
         </el-button>
       </template>
@@ -248,10 +248,17 @@ const masteredWordsData = computed<LeaderboardDimension | null>(() => leaderboar
 const quizScoreData = computed<LeaderboardDimension | null>(() => leaderboardData.value?.quizScore || null)
 const streakDaysData = computed<LeaderboardDimension | null>(() => leaderboardData.value?.streakDays || null)
 
-const fetchLeaderboard = async (dimension?: string) => {
+const VALID_DIMENSIONS = ['masteredWords', 'quizScore', 'streakDays'] as const
+
+const fetchLeaderboard = async (dimension?: unknown) => {
   loading.value = true
   try {
-    const dim = dimension || activeTab.value
+    let dim: string
+    if (typeof dimension === 'string' && VALID_DIMENSIONS.includes(dimension as typeof VALID_DIMENSIONS[number])) {
+      dim = dimension
+    } else {
+      dim = activeTab.value
+    }
     leaderboardData.value = await leaderboardApi.getLeaderboard(dim)
   } catch (error) {
     console.error('Failed to fetch leaderboard:', error)
@@ -261,7 +268,9 @@ const fetchLeaderboard = async (dimension?: string) => {
 }
 
 const handleTabChange = (tabName: string) => {
-  fetchLeaderboard(tabName)
+  if (VALID_DIMENSIONS.includes(tabName as typeof VALID_DIMENSIONS[number])) {
+    fetchLeaderboard(tabName)
+  }
 }
 
 const isCurrentUser = (row: LeaderboardEntry): boolean => {
